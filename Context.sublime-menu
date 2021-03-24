@@ -1,0 +1,9 @@
+[
+    { "caption": "-", "id": "format" },
+    {
+        "caption": "Format File",
+        "command": "format_file",
+    },
+
+    { "caption": "-", "id": "end" },
+]

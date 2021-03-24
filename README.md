@@ -1,1 +1,1 @@
-# sublime-clang-format
+# Clang Format for Sublime Text 3
