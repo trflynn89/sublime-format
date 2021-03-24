@@ -168,7 +168,7 @@ class FormatFileCommand(sublime_plugin.TextCommand):
 class FormatFileListener(sublime_plugin.EventListener):
     """
     Plugin to run FormatFileCommand on a file when it is saved. This plugin is disabled by default.
-    It may be enabled by setting "format_on_save" to true in project settings. Example:
+    It may be enabled by setting |on_save| to true in project settings. Example:
 
         {
             "folders": [],
@@ -179,8 +179,8 @@ class FormatFileListener(sublime_plugin.EventListener):
             }
         }
 
-    Alternatively, setting "format_on_save" to a list of folder names allows selectively enabling
-    this plugin for those folders only. Example:
+    Alternatively, setting |on_save| to a list of folder names allows selectively enabling this
+    plugin for those folders only. Example:
 
         {
             "folders": [
