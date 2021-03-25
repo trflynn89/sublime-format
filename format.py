@@ -69,17 +69,22 @@ def find_binary(directory, binaries):
 
     return None
 
-def execute_command(command, working_directory, stdin=None):
+def execute_command(command, working_directory, stdin=None, extra_environment=None):
     """
     Execute a command list in the given working directory, optionally piping in an input string.
     Returns the standard output of the command, or None if an error occurred.
     """
+    environment = os.environ.copy()
     startup_info = None
 
     # On Windows, prevent a command prompt from showing
     if os.name == 'nt':
         startup_info = subprocess.STARTUPINFO()
         startup_info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+    if extra_environment:
+        for (key, value) in extra_environment.items():
+            environment[key] = os.path.expandvars(value)
 
     try:
         encoding = 'utf-8'
@@ -89,8 +94,9 @@ def execute_command(command, working_directory, stdin=None):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd=working_directory,
             startupinfo=startup_info,
+            cwd=working_directory,
+            env=environment,
         )
 
         if stdin:
@@ -133,6 +139,8 @@ class FormatFileCommand(sublime_plugin.TextCommand):
         super(FormatFileCommand, self).__init__(*args, **kwargs)
 
         self.format_directory = get_project_setting('path')
+        self.environment = get_project_setting('environment')
+
         self.format = find_binary(self.format_directory, FORMATTERS)
 
     def run(self, edit, ignore_selections=False):
@@ -148,7 +156,8 @@ class FormatFileCommand(sublime_plugin.TextCommand):
         region = sublime.Region(0, self.view.size())
         contents = self.view.substr(region)
 
-        contents = execute_command(command, working_directory, stdin=contents)
+        contents = execute_command(
+            command, working_directory, stdin=contents, extra_environment=self.environment)
 
         if contents:
             self.view.replace(edit, region, contents)

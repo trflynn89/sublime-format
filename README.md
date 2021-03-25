@@ -26,16 +26,21 @@ The following settings may be used:
         "clang_format": {
             "path": "$HOME/workspace/tools",
             "on_save": true,
+            "environment": {
+                "KEY": "VALUE"
+            }
         }
     }
 }
 ```
 
 * `path` - The directory containing the `clang-format` binary to use. By default, the plugin will
-  search the `$PATH` for the binary.
+  search the `$PATH` for the binary. May contain environment variables in the path, such as `$HOME`.
 * `on_save` - Configure the plugin to run `clang-format` when a file is saved. Disabled by default.
   May be set to `true`, `false`, or an array of project folder names for which the setting should be
   enabled.
+* `environment` - Extra environment variables to set before running `clang-format`. Each environment
+  variable may contain other environment variables in their value, such as `$HOME`.
 
 For example, to enable the `on_save` setting for a specific folder:
 
