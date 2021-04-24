@@ -160,7 +160,16 @@ class FormatFileCommand(sublime_plugin.TextCommand):
             command, working_directory, stdin=contents, extra_environment=self.environment)
 
         if contents:
+            position = self.view.viewport_position()
             self.view.replace(edit, region, contents)
+
+            # This is a bit of a hack. If the selection extends horizontally beyond the viewport,
+            # the call to view.replace sometimes scrolls off to the right. This resets the viewport
+            # position, but first sets the position to (0, 0) - otherwise the 'real' invocation
+            # doesn't seem to have any effect.
+            # https://github.com/sublimehq/sublime_text/issues/2560
+            self.view.set_viewport_position((0, 0), False)
+            self.view.set_viewport_position(position, False)
 
     def is_enabled(self):
         return is_supported_language(self.view)
