@@ -1,3 +1,4 @@
+import enum
 import os
 import shutil
 import subprocess
@@ -5,25 +6,48 @@ import subprocess
 import sublime
 import sublime_plugin
 
-# List of possible names the clang-format binary may have
-if os.name == 'nt':
-    FORMATTERS = ['clang-format.bat', 'clang-format.exe']
-else:
-    FORMATTERS = ['clang-format']
-
-# List of languages supported for use with clang-format
-LANGUAGES = ['C', 'C++', 'Objective-C', 'Objective-C++', 'Java']
-
-def is_supported_language(view):
+@enum.unique
+class Formatter(enum.Enum):
     """
-    Check if the syntax of the given view is of a supported language.
+    Formatters supported by this plugin.
+    """
+    ClangFormat = enum.auto()
+    Prettier = enum.auto()
+
+    def __str__(self):
+        if self is Formatter.ClangFormat:
+            return 'clang-format'
+        elif self is Formatter.Prettier:
+            return 'prettier'
+
+# List of possible names the formatters may have.
+if os.name == 'nt':
+    FORMATTERS = {
+        Formatter.ClangFormat: ['clang-format.bat', 'clang-format.exe'],
+        Formatter.Prettier: ['prettier.cmd', 'prettier.exe'],
+    }
+else:
+    FORMATTERS = {
+        Formatter.ClangFormat: ['clang-format'],
+        Formatter.Prettier: ['prettier'],
+    }
+
+# List of languages supported for use with the formatters.
+LANGUAGES = {
+    Formatter.ClangFormat: ['C', 'C++', 'Objective-C', 'Objective-C++', 'Java'],
+    Formatter.Prettier: ['JavaScript', 'JavaScript (Babel)'],
+}
+
+def is_supported_language(formatter, view):
+    """
+    Check if the syntax of the given view is of a supported language for the given formatter.
     """
     (syntax, _) = os.path.splitext(view.settings().get('syntax'))
-    supported = any(syntax.endswith(lang) for lang in LANGUAGES)
+    supported = any(syntax.endswith(lang) for lang in LANGUAGES[formatter])
 
     return supported and bool(view.file_name())
 
-def get_project_setting(setting_key):
+def get_project_setting(formatter, setting_key):
     """
     Load a project setting from the active window, with environment variable expansion for string
     settings.
@@ -33,10 +57,18 @@ def get_project_setting(setting_key):
         return None
 
     settings = project_data['settings']
-    if 'clang_format' not in project_data['settings']:
+    if 'format' not in project_data['settings']:
         return None
 
-    settings = settings['clang_format']
+    settings = settings['format']
+
+    if formatter:
+        formatter = str(formatter)
+        if formatter not in settings:
+            return None
+
+        settings = settings[formatter]
+
     if setting_key not in settings:
         return None
 
@@ -47,25 +79,41 @@ def get_project_setting(setting_key):
 
     return setting
 
-def find_binary(directory, binaries):
+def find_binary(formatter, directory, view):
     """
     Search for one of a list of binaries in the given directory or on the system PATH. Return the
     first valid binary that is found.
     """
+    binaries = FORMATTERS[formatter]
+
     is_directory = lambda d: d and os.path.isdir(d) and os.access(d, os.R_OK)
     is_binary = lambda f: f and os.path.isfile(f) and os.access(f, os.X_OK)
 
-    # First search through the given directory for any of the binaries
+    # First search through the given directory for any of the binaries.
     for binary in (binaries if is_directory(directory) else []):
         binary = os.path.join(directory, binary)
         if is_binary(binary):
             return binary
 
-    # Then fallback onto the system PATH
+    # Then fallback onto the system PATH.
     for binary in binaries:
         binary = shutil.which(binary)
         if is_binary(binary):
             return binary
+
+    # Otherwise, fallback onto formatter-specific common locations.
+    if formatter is Formatter.Prettier:
+        for project_path in view.window().folders():
+            if view.file_name().startswith(project_path):
+                project_path = os.path.join(project_path, 'node_modules', '.bin')
+                break
+        else:
+            project_path = None
+
+        for binary in (binaries if is_directory(project_path) else []):
+            binary = os.path.join(project_path, binary)
+            if is_binary(binary):
+                return binary
 
     return None
 
@@ -77,7 +125,7 @@ def execute_command(command, working_directory, stdin=None, extra_environment=No
     environment = os.environ.copy()
     startup_info = None
 
-    # On Windows, prevent a command prompt from showing
+    # On Windows, prevent a command prompt from showing.
     if os.name == 'nt':
         startup_info = subprocess.STARTUPINFO()
         startup_info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
@@ -116,40 +164,66 @@ def execute_command(command, working_directory, stdin=None, extra_environment=No
 
 class FormatFileCommand(sublime_plugin.TextCommand):
     """
-    Command to run clang-format on a file. If any selections are active, only those selections are
+    Command to format a file on demand. If any selections are active, only those selections are
     formatted.
 
-    This plugin by default loads clang-format from the system PATH. But because Sublime doesn't
-    source ~/.zshrc or ~/.bashrc, any PATH changes made there will not be noticed. So, users may set
-    "clang_format_directory" in their project's settings, and that directory is used instead of
-    PATH. Example:
+    This plugin by default loads formatter binaries from the system $PATH. But because Sublime does
+    not source ~/.zshrc or ~/.bashrc, any $PATH changes made there will not be noticed. So, users
+    may set "path" settings for each formatter in their project's settings, and that directory is
+    used instead of $PATH. Example:
 
         {
             "folders": [],
             "settings": {
-                "clang_format": {
-                    "path": "$HOME/workspace/tools",
+                "format": {
+                    "clang-format": {
+                        "path": "$HOME/workspace/tools",
+                    },
+                    "prettier": {
+                        "path": "$HOME/workspace/tools",
+                    },
                 }
             }
         }
 
-    Any known environment variables in the setting's value will be expanded.
+    Any known environment variables in the settings' values will be expanded.
     """
     def __init__(self, *args, **kwargs):
         super(FormatFileCommand, self).__init__(*args, **kwargs)
 
-        self.format_directory = get_project_setting('path')
-        self.environment = get_project_setting('environment')
+        self.environment = get_project_setting(None, 'environment')
+        self.formatter = None
 
-        self.format = find_binary(self.format_directory, FORMATTERS)
+        if is_supported_language(Formatter.ClangFormat, self.view):
+            self.clang_format_directory = get_project_setting(Formatter.ClangFormat, 'path')
+            self.clang_format = find_binary(Formatter.ClangFormat, self.clang_format_directory, self.view)
+
+            if self.clang_format is not None:
+                self.formatter = Formatter.ClangFormat
+
+        elif is_supported_language(Formatter.Prettier, self.view):
+            self.prettier_directory = get_project_setting(Formatter.Prettier, 'path')
+            self.prettier = find_binary(Formatter.Prettier, self.prettier_directory, self.view)
+
+            if self.prettier is not None:
+                self.formatter = Formatter.Prettier
 
     def run(self, edit, ignore_selections=False):
-        command = [self.format, '-assume-filename', self.view.file_name()]
+        if self.formatter is Formatter.ClangFormat:
+            command = [self.clang_format, '-assume-filename', self.view.file_name()]
 
-        if not ignore_selections:
-            for region in [r for r in self.view.sel() if not r.empty()]:
-                command.extend(['-offset', str(region.begin())])
-                command.extend(['-length', str(region.size())])
+            if not ignore_selections:
+                for region in [r for r in self.view.sel() if not r.empty()]:
+                    command.extend(['-offset', str(region.begin())])
+                    command.extend(['-length', str(region.size())])
+
+        elif self.formatter is Formatter.Prettier:
+            command = [self.prettier, '--parser', 'babel']
+
+            if not ignore_selections:
+                for region in [r for r in self.view.sel() if not r.empty()]:
+                    command.extend(['--range-start', str(region.begin())])
+                    command.extend(['--range-end', str(region.end())])
 
         working_directory = os.path.dirname(self.view.file_name())
 
@@ -172,16 +246,10 @@ class FormatFileCommand(sublime_plugin.TextCommand):
             self.view.set_viewport_position(position, False)
 
     def is_enabled(self):
-        return is_supported_language(self.view)
+        return self.formatter is not None
 
     def is_visible(self):
-        format_directory = get_project_setting('path')
-
-        if format_directory != self.format_directory:
-            self.format_directory = format_directory
-            self.format = find_binary(format_directory, FORMATTERS)
-
-        return bool(self.format)
+        return self.formatter is not None
 
 class FormatFileListener(sublime_plugin.EventListener):
     """
@@ -191,7 +259,7 @@ class FormatFileListener(sublime_plugin.EventListener):
         {
             "folders": [],
             "settings": {
-                "clang_format": {
+                "format": {
                     "on_save": true,
                 }
             }
@@ -208,7 +276,7 @@ class FormatFileListener(sublime_plugin.EventListener):
                 }
             ],
             "settings": {
-                "clang_format": {
+                "format": {
                     "on_save": [
                         "MyFolder"
                     ],
@@ -217,15 +285,15 @@ class FormatFileListener(sublime_plugin.EventListener):
         }
     """
     def on_pre_save(self, view):
-        if not is_supported_language(view):
+        if not any(is_supported_language(formatter, view) for formatter in Formatter):
             return
         elif not self._is_enabled(view):
             return
 
-        view.run_command('format_file', {'ignore_selections': True})
+        view.run_command('format_file', { 'ignore_selections': True })
 
     def _is_enabled(self, view):
-        format_on_save = get_project_setting('on_save')
+        format_on_save = get_project_setting(None, 'on_save')
 
         if isinstance(format_on_save, bool):
             return format_on_save
