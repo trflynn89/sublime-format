@@ -222,30 +222,34 @@ class FormatFileCommand(sublime_plugin.TextCommand):
                 self.formatter = Formatter.AutoPep8
 
     def run(self, edit, ignore_selections=False):
+        if ignore_selections or (len(self.view.sel()) == 0):
+            selected_regions = lambda: []
+        else:
+            selected_regions = lambda: [region for region in self.view.sel() if not region.empty()]
+
         if self.formatter is Formatter.ClangFormat:
             command = [self.clang_format, '-assume-filename', self.view.file_name()]
 
-            if not ignore_selections:
-                for region in [r for r in self.view.sel() if not r.empty()]:
-                    command.extend(['-offset', str(region.begin())])
-                    command.extend(['-length', str(region.size())])
+            for region in selected_regions():
+                command.extend(['-offset', str(region.begin())])
+                command.extend(['-length', str(region.size())])
 
         elif self.formatter is Formatter.Prettier:
             command = [self.prettier, '--parser', 'babel']
 
-            if not ignore_selections:
-                for region in [r for r in self.view.sel() if not r.empty()]:
-                    command.extend(['--range-start', str(region.begin())])
-                    command.extend(['--range-end', str(region.end())])
+            for region in selected_regions():
+                command.extend(['--range-start', str(region.begin())])
+                command.extend(['--range-end', str(region.end())])
+                break
 
         elif self.formatter is Formatter.AutoPep8:
             command = [self.autopep8]
 
-            if not ignore_selections:
-                for region in [r for r in self.view.sel() if not r.empty()]:
-                    (begin, _) = self.view.rowcol(region.begin())
-                    (end, _) = self.view.rowcol(region.end())
-                    command.extend(['--line-range', str(begin + 1), str(end + 1)])
+            for region in selected_regions():
+                (begin, _) = self.view.rowcol(region.begin())
+                (end, _) = self.view.rowcol(region.end())
+                command.extend(['--line-range', str(begin + 1), str(end + 1)])
+                break
 
             command.append('-')
 

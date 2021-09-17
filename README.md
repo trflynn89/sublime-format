@@ -11,7 +11,8 @@ right-click on a file to see "Format File" in the context menu.
 
 By default, the entire file will be formatted. However, if any selections are active, only those
 selections will be formatted. Note: `prettier` and `autopep8` only support formatting a single
-selection. If there are multiple selections added, only the last will be formatted.
+selection. If there are multiple selections added, only the first non-empty selection will be
+formatted.
 
 This plugin may also be used to format code automatically when a file is saved. See
 [Settings](#Settings).
