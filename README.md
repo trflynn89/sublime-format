@@ -26,29 +26,30 @@ The following settings may be used:
     "folders": [],
     "settings": {
         "format": {
-            "on_save": true,
             "environment": {
                 "KEY": "VALUE"
             },
             "clang-format": {
                 "path": "$HOME/workspace/tools",
+                "on_save": true
             },
             "prettier": {
                 "path": "$HOME/workspace/tools",
+                "on_save": false
             }
         }
     }
 }
 ```
 
+* `environment` - Extra environment variables to set before running a formatter. Each environment
+  variable may contain other environment variables in their value, such as `$HOME`.
 * `{formatter}/path` - The directory containing the binary to use for that formatter. By default,
   the plugin will search the `$PATH` for the binary. May contain environment variables in the path,
   such as `$HOME`.
-* `on_save` - Configure the plugin to automatically format a file when it is saved. Disabled by
-  default. May be set to `true`, `false`, or an array of project folder names for which the setting
-  should be enabled.
-* `environment` - Extra environment variables to set before running a formatter. Each environment
-  variable may contain other environment variables in their value, such as `$HOME`.
+* `{formatter}/on_save` - Configure the plugin to automatically format a file with a formatter when
+  it is saved. Disabled by default. May be set to `true`, `false`, or an array of project folder
+  names for which the setting should be enabled.
 
 For example, to enable the `on_save` setting for a specific folder:
 
@@ -65,9 +66,11 @@ For example, to enable the `on_save` setting for a specific folder:
     ],
     "settings": {
         "format": {
-            "on_save": [
-                "MyFolder"
-            ],
+            "clang-format": {
+                "on_save": [
+                    "MyFolder"
+                ]
+            }
         }
     }
 }

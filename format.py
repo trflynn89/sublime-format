@@ -254,13 +254,18 @@ class FormatFileCommand(sublime_plugin.TextCommand):
 class FormatFileListener(sublime_plugin.EventListener):
     """
     Plugin to run FormatFileCommand on a file when it is saved. This plugin is disabled by default.
-    It may be enabled by setting |on_save| to true in project settings. Example:
+    It may be enabled by setting |on_save| to true in each project settings. Example:
 
         {
             "folders": [],
             "settings": {
                 "format": {
-                    "on_save": true,
+                    "clang-format": {
+                        "on_save": true
+                    },
+                    "prettier": {
+                        "on_save": false
+                    }
                 }
             }
         }
@@ -277,23 +282,28 @@ class FormatFileListener(sublime_plugin.EventListener):
             ],
             "settings": {
                 "format": {
-                    "on_save": [
-                        "MyFolder"
-                    ],
+                    "clang-format": {
+                        "on_save": [
+                            "MyFolder"
+                        ]
+                    }
                 }
             }
         }
     """
     def on_pre_save(self, view):
-        if not any(is_supported_language(formatter, view) for formatter in Formatter):
-            return
-        elif not self._is_enabled(view):
+        if is_supported_language(Formatter.ClangFormat, view):
+            formatter = Formatter.ClangFormat
+        elif is_supported_language(Formatter.Prettier, view):
+            formatter = Formatter.Prettier
+        else:
             return
 
-        view.run_command('format_file', { 'ignore_selections': True })
+        if self._is_enabled(formatter, view):
+            view.run_command('format_file', { 'ignore_selections': True })
 
-    def _is_enabled(self, view):
-        format_on_save = get_project_setting(None, 'on_save')
+    def _is_enabled(self, formatter, view):
+        format_on_save = get_project_setting(formatter, 'on_save')
 
         if isinstance(format_on_save, bool):
             return format_on_save
