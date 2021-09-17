@@ -53,6 +53,18 @@ def is_supported_language(formatter, view):
 
     return supported and bool(view.file_name())
 
+def formatter_type(view):
+    """
+    Return the type of formatter to use for the given view, if any.
+    """
+    if is_supported_language(Formatter.ClangFormat, view):
+        return Formatter.ClangFormat
+    elif is_supported_language(Formatter.Prettier, view):
+        return Formatter.Prettier
+    elif is_supported_language(Formatter.AutoPep8, view):
+        return Formatter.AutoPep8
+    return None
+
 def get_project_setting(formatter, setting_key):
     """
     Load a project setting from the active window, with environment variable expansion for string
@@ -198,28 +210,12 @@ class FormatFileCommand(sublime_plugin.TextCommand):
         super(FormatFileCommand, self).__init__(*args, **kwargs)
 
         self.environment = get_project_setting(None, 'environment')
-        self.formatter = None
+        self.formatter = formatter_type(self.view)
+        self.binary = None
 
-        if is_supported_language(Formatter.ClangFormat, self.view):
-            self.clang_format_directory = get_project_setting(Formatter.ClangFormat, 'path')
-            self.clang_format = find_binary(Formatter.ClangFormat, self.clang_format_directory, self.view)
-
-            if self.clang_format is not None:
-                self.formatter = Formatter.ClangFormat
-
-        elif is_supported_language(Formatter.Prettier, self.view):
-            self.prettier_directory = get_project_setting(Formatter.Prettier, 'path')
-            self.prettier = find_binary(Formatter.Prettier, self.prettier_directory, self.view)
-
-            if self.prettier is not None:
-                self.formatter = Formatter.Prettier
-
-        elif is_supported_language(Formatter.AutoPep8, self.view):
-            self.autopep8_directory = get_project_setting(Formatter.AutoPep8, 'path')
-            self.autopep8 = find_binary(Formatter.AutoPep8, self.autopep8_directory, self.view)
-
-            if self.autopep8 is not None:
-                self.formatter = Formatter.AutoPep8
+        if self.formatter is not None:
+            path = get_project_setting(self.formatter, 'path')
+            self.binary = find_binary(self.formatter, path, self.view)
 
     def run(self, edit, ignore_selections=False):
         if ignore_selections or (len(self.view.sel()) == 0):
@@ -227,15 +223,17 @@ class FormatFileCommand(sublime_plugin.TextCommand):
         else:
             selected_regions = lambda: [region for region in self.view.sel() if not region.empty()]
 
+        command = [self.binary]
+
         if self.formatter is Formatter.ClangFormat:
-            command = [self.clang_format, '-assume-filename', self.view.file_name()]
+            command.extend(['-assume-filename', self.view.file_name()])
 
             for region in selected_regions():
                 command.extend(['-offset', str(region.begin())])
                 command.extend(['-length', str(region.size())])
 
         elif self.formatter is Formatter.Prettier:
-            command = [self.prettier, '--parser', 'babel']
+            command.extend(['--parser', 'babel'])
 
             for region in selected_regions():
                 command.extend(['--range-start', str(region.begin())])
@@ -243,8 +241,6 @@ class FormatFileCommand(sublime_plugin.TextCommand):
                 break
 
         elif self.formatter is Formatter.AutoPep8:
-            command = [self.autopep8]
-
             for region in selected_regions():
                 (begin, _) = self.view.rowcol(region.begin())
                 (end, _) = self.view.rowcol(region.end())
@@ -274,10 +270,10 @@ class FormatFileCommand(sublime_plugin.TextCommand):
             self.view.set_viewport_position(position, False)
 
     def is_enabled(self):
-        return self.formatter is not None
+        return self.binary is not None
 
     def is_visible(self):
-        return self.formatter is not None
+        return self.binary is not None
 
 class FormatFileListener(sublime_plugin.EventListener):
     """
@@ -323,17 +319,14 @@ class FormatFileListener(sublime_plugin.EventListener):
         }
     """
     def on_pre_save(self, view):
-        if is_supported_language(Formatter.ClangFormat, view):
-            formatter = Formatter.ClangFormat
-        elif is_supported_language(Formatter.Prettier, view):
-            formatter = Formatter.Prettier
-        elif is_supported_language(Formatter.AutoPep8, view):
-            formatter = Formatter.AutoPep8
-        else:
+        formatter = formatter_type(view)
+
+        if formatter is None:
+            return
+        elif not self._is_enabled(formatter, view):
             return
 
-        if self._is_enabled(formatter, view):
-            view.run_command('format_file', { 'ignore_selections': True })
+        view.run_command('format_file', { 'ignore_selections': True })
 
     def _is_enabled(self, formatter, view):
         format_on_save = get_project_setting(formatter, 'on_save')
