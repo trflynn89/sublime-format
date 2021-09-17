@@ -13,29 +13,35 @@ class Formatter(enum.Enum):
     """
     ClangFormat = enum.auto()
     Prettier = enum.auto()
+    AutoPep8 = enum.auto()
 
     def __str__(self):
         if self is Formatter.ClangFormat:
             return 'clang-format'
         elif self is Formatter.Prettier:
             return 'prettier'
+        elif self is Formatter.AutoPep8:
+            return 'autopep8'
 
 # List of possible names the formatters may have.
 if os.name == 'nt':
     FORMATTERS = {
         Formatter.ClangFormat: ['clang-format.bat', 'clang-format.exe'],
         Formatter.Prettier: ['prettier.cmd', 'prettier.exe'],
+        Formatter.AutoPep8: ['autopep8.cmd', 'autopep8.exe'],
     }
 else:
     FORMATTERS = {
         Formatter.ClangFormat: ['clang-format'],
         Formatter.Prettier: ['prettier'],
+        Formatter.AutoPep8: ['autopep8'],
     }
 
 # List of languages supported for use with the formatters.
 LANGUAGES = {
     Formatter.ClangFormat: ['C', 'C++', 'Objective-C', 'Objective-C++', 'Java'],
     Formatter.Prettier: ['JavaScript', 'JavaScript (Babel)'],
+    Formatter.AutoPep8: ['Python'],
 }
 
 def is_supported_language(formatter, view):
@@ -208,6 +214,13 @@ class FormatFileCommand(sublime_plugin.TextCommand):
             if self.prettier is not None:
                 self.formatter = Formatter.Prettier
 
+        elif is_supported_language(Formatter.AutoPep8, self.view):
+            self.autopep8_directory = get_project_setting(Formatter.AutoPep8, 'path')
+            self.autopep8 = find_binary(Formatter.AutoPep8, self.autopep8_directory, self.view)
+
+            if self.autopep8 is not None:
+                self.formatter = Formatter.AutoPep8
+
     def run(self, edit, ignore_selections=False):
         if self.formatter is Formatter.ClangFormat:
             command = [self.clang_format, '-assume-filename', self.view.file_name()]
@@ -224,6 +237,17 @@ class FormatFileCommand(sublime_plugin.TextCommand):
                 for region in [r for r in self.view.sel() if not r.empty()]:
                     command.extend(['--range-start', str(region.begin())])
                     command.extend(['--range-end', str(region.end())])
+
+        elif self.formatter is Formatter.AutoPep8:
+            command = [self.autopep8]
+
+            if not ignore_selections:
+                for region in [r for r in self.view.sel() if not r.empty()]:
+                    (begin, _) = self.view.rowcol(region.begin())
+                    (end, _) = self.view.rowcol(region.end())
+                    command.extend(['--line-range', str(begin + 1), str(end + 1)])
+
+            command.append('-')
 
         working_directory = os.path.dirname(self.view.file_name())
 
@@ -266,6 +290,9 @@ class FormatFileListener(sublime_plugin.EventListener):
                     "prettier": {
                         "on_save": false
                     }
+                    "autopep8": {
+                        "on_save": true
+                    }
                 }
             }
         }
@@ -296,6 +323,8 @@ class FormatFileListener(sublime_plugin.EventListener):
             formatter = Formatter.ClangFormat
         elif is_supported_language(Formatter.Prettier, view):
             formatter = Formatter.Prettier
+        elif is_supported_language(Formatter.AutoPep8, view):
+            formatter = Formatter.AutoPep8
         else:
             return
 

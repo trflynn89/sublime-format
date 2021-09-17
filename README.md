@@ -1,7 +1,7 @@
 # Code Formatting Plugin for Sublime Text 3 & 4
 
-Sublime Text plugin for running [clang-format](https://clang.llvm.org/docs/ClangFormat.html) or
-[prettier](https://prettier.io/) on source files.
+Sublime Text plugin for running [clang-format](https://clang.llvm.org/docs/ClangFormat.html),
+[prettier](https://prettier.io/), or [autopep8](https://github.com/hhatto/autopep8) on source files.
 
 ## Usage
 
@@ -10,8 +10,8 @@ format a file via the Command Palette, open the palette and enter "Format File".
 right-click on a file to see "Format File" in the context menu.
 
 By default, the entire file will be formatted. However, if any selections are active, only those
-selections will be formatted. Note: `prettier` only supports formatting a single selection. If there
-are multiple selections added, only the last will be formatted.
+selections will be formatted. Note: `prettier` and `autopep8` only support formatting a single
+selection. If there are multiple selections added, only the last will be formatted.
 
 This plugin may also be used to format code automatically when a file is saved. See
 [Settings](#Settings).
@@ -36,6 +36,10 @@ The following settings may be used:
             "prettier": {
                 "path": "$HOME/workspace/tools",
                 "on_save": false
+            },
+            "autopep8": {
+                "path": "$HOME/workspace/tools",
+                "on_save": true
             }
         }
     }
