@@ -6,6 +6,7 @@ import subprocess
 import sublime
 import sublime_plugin
 
+
 @enum.unique
 class Formatter(enum.Enum):
     """
@@ -22,6 +23,7 @@ class Formatter(enum.Enum):
             return 'prettier'
         elif self is Formatter.AutoPep8:
             return 'autopep8'
+
 
 # List of possible names the formatters may have.
 if os.name == 'nt':
@@ -44,6 +46,7 @@ LANGUAGES = {
     Formatter.AutoPep8: ['Python'],
 }
 
+
 def is_supported_language(formatter, view):
     """
     Check if the syntax of the given view is of a supported language for the given formatter.
@@ -52,6 +55,7 @@ def is_supported_language(formatter, view):
     supported = any(syntax.endswith(lang) for lang in LANGUAGES[formatter])
 
     return supported and bool(view.file_name())
+
 
 def formatter_type(view):
     """
@@ -64,6 +68,7 @@ def formatter_type(view):
     elif is_supported_language(Formatter.AutoPep8, view):
         return Formatter.AutoPep8
     return None
+
 
 def get_project_setting(formatter, setting_key):
     """
@@ -96,6 +101,7 @@ def get_project_setting(formatter, setting_key):
         return os.path.expandvars(setting)
 
     return setting
+
 
 def find_binary(formatter, directory, view):
     """
@@ -134,6 +140,7 @@ def find_binary(formatter, directory, view):
                 return binary
 
     return None
+
 
 def execute_command(command, working_directory, stdin=None, extra_environment=None):
     """
@@ -180,6 +187,7 @@ def execute_command(command, working_directory, stdin=None, extra_environment=No
 
     return None
 
+
 class FormatFileCommand(sublime_plugin.TextCommand):
     """
     Command to format a file on demand. If any selections are active, only those selections are
@@ -206,6 +214,7 @@ class FormatFileCommand(sublime_plugin.TextCommand):
 
     Any known environment variables in the settings' values will be expanded.
     """
+
     def __init__(self, *args, **kwargs):
         super(FormatFileCommand, self).__init__(*args, **kwargs)
 
@@ -275,6 +284,7 @@ class FormatFileCommand(sublime_plugin.TextCommand):
     def is_visible(self):
         return self.binary is not None
 
+
 class FormatFileListener(sublime_plugin.EventListener):
     """
     Plugin to run FormatFileCommand on a file when it is saved. This plugin is disabled by default.
@@ -318,6 +328,7 @@ class FormatFileListener(sublime_plugin.EventListener):
             }
         }
     """
+
     def on_pre_save(self, view):
         formatter = formatter_type(view)
 
@@ -326,7 +337,7 @@ class FormatFileListener(sublime_plugin.EventListener):
         elif not self._is_enabled(formatter, view):
             return
 
-        view.run_command('format_file', { 'ignore_selections': True })
+        view.run_command('format_file', {'ignore_selections': True})
 
     def _is_enabled(self, formatter, view):
         format_on_save = get_project_setting(formatter, 'on_save')
