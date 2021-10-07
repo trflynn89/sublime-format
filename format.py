@@ -217,7 +217,9 @@ class FormatFileCommand(sublime_plugin.TextCommand):
 
     def __init__(self, *args, **kwargs):
         super(FormatFileCommand, self).__init__(*args, **kwargs)
+        self.initialize()
 
+    def initialize(self):
         self.environment = get_project_setting(None, 'environment')
         self.formatter = formatter_type(self.view)
         self.binary = None
@@ -279,10 +281,12 @@ class FormatFileCommand(sublime_plugin.TextCommand):
             self.view.set_viewport_position(position, False)
 
     def is_enabled(self):
+        if self.binary is None:
+            self.initialize()
         return self.binary is not None
 
     def is_visible(self):
-        return self.binary is not None
+        return self.is_enabled()
 
 
 class FormatFileListener(sublime_plugin.EventListener):
