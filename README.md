@@ -64,6 +64,7 @@ The following settings may be used:
 For example, to enable the `on_save` setting for a specific folder:
 
 ```json
+{
    "folders": [
         {
             "name": "MyFolder",
