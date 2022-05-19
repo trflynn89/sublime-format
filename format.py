@@ -15,6 +15,7 @@ class Formatter(enum.Enum):
     ClangFormat = enum.auto()
     Prettier = enum.auto()
     AutoPep8 = enum.auto()
+    RustFmt = enum.auto()
 
     def __str__(self):
         if self is Formatter.ClangFormat:
@@ -23,6 +24,8 @@ class Formatter(enum.Enum):
             return 'prettier'
         elif self is Formatter.AutoPep8:
             return 'autopep8'
+        elif self is Formatter.RustFmt:
+            return 'rustfmt'
 
 
 # List of possible names the formatters may have.
@@ -31,12 +34,14 @@ if os.name == 'nt':
         Formatter.ClangFormat: ['clang-format.bat', 'clang-format.exe'],
         Formatter.Prettier: ['prettier.cmd', 'prettier.exe'],
         Formatter.AutoPep8: ['autopep8.cmd', 'autopep8.exe'],
+        Formatter.RustFmt: ['rustfmt.exe'],
     }
 else:
     FORMATTERS = {
         Formatter.ClangFormat: ['clang-format'],
         Formatter.Prettier: ['prettier'],
         Formatter.AutoPep8: ['autopep8'],
+        Formatter.RustFmt: ['rustfmt'],
     }
 
 # List of languages supported for use with the formatters.
@@ -44,6 +49,7 @@ LANGUAGES = {
     Formatter.ClangFormat: ['C', 'C++', 'Objective-C', 'Objective-C++', 'Java'],
     Formatter.Prettier: ['JavaScript', 'JavaScript (Babel)'],
     Formatter.AutoPep8: ['Python'],
+    Formatter.RustFmt: ['Rust'],
 }
 
 
@@ -67,6 +73,8 @@ def formatter_type(view):
         return Formatter.Prettier
     elif is_supported_language(Formatter.AutoPep8, view):
         return Formatter.AutoPep8
+    elif is_supported_language(Formatter.RustFmt, view):
+        return Formatter.RustFmt
     return None
 
 
@@ -136,6 +144,14 @@ def find_binary(formatter, directory, view):
 
         for binary in (binaries if is_directory(project_path) else []):
             binary = os.path.join(project_path, binary)
+            if is_binary(binary):
+                return binary
+
+    elif formatter is Formatter.RustFmt:
+        cargo_path = os.path.join(os.path.expanduser('~'), '.cargo', 'bin')
+
+        for binary in (binaries if is_directory(cargo_path) else []):
+            binary = os.path.join(cargo_path, binary)
             if is_binary(binary):
                 return binary
 
@@ -303,8 +319,11 @@ class FormatFileListener(sublime_plugin.EventListener):
                     },
                     "prettier": {
                         "on_save": false
-                    }
+                    },
                     "autopep8": {
+                        "on_save": true
+                    },
+                    "rustfmt": {
                         "on_save": true
                     }
                 }
