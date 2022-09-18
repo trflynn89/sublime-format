@@ -57,7 +57,11 @@ def is_supported_language(formatter, view):
     """
     Check if the syntax of the given view is of a supported language for the given formatter.
     """
-    (syntax, _) = os.path.splitext(view.settings().get('syntax'))
+    syntax = view.settings().get('syntax')
+    if syntax is None:
+        return False
+
+    (syntax, _) = os.path.splitext(syntax)
     supported = any(syntax.endswith(lang) for lang in LANGUAGES[formatter])
 
     return supported and bool(view.file_name())
