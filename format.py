@@ -1,5 +1,6 @@
 import enum
 import os
+import platform
 import shutil
 import subprocess
 
@@ -51,6 +52,23 @@ LANGUAGES = {
     Formatter.AutoPep8: ['Python'],
     Formatter.RustFmt: ['Rust'],
 }
+
+
+def add_to_path(directory):
+    """
+    Add a path to the system PATH if it is not already present.
+    """
+    is_directory = lambda d: d and os.path.isdir(d) and os.access(d, os.R_OK)
+    path = os.environ['PATH'].split(os.pathsep)
+
+    if is_directory(directory) and directory not in path:
+        path.append(directory)
+        os.environ['PATH'] = os.pathsep.join(path)
+
+
+# Add OS-specific locations to the system PATH for convenience.
+if platform.system() == 'Darwin':
+    add_to_path(os.path.join(os.path.sep, 'opt', 'homebrew', 'bin'))
 
 
 def is_supported_language(formatter, view):
