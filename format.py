@@ -67,7 +67,9 @@ def add_to_path(directory):
 
 
 # Add OS-specific locations to the system PATH for convenience.
-if platform.system() == 'Darwin':
+if platform.system() == 'Linux':
+    add_to_path(os.path.join(os.path.expanduser('~'), '.local', 'bin'))
+elif platform.system() == 'Darwin':
     add_to_path(os.path.join(os.path.sep, 'opt', 'homebrew', 'bin'))
 
 
