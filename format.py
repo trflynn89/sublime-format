@@ -48,7 +48,7 @@ else:
 # List of languages supported for use with the formatters.
 LANGUAGES = {
     Formatter.ClangFormat: ['C', 'C++', 'Objective-C', 'Objective-C++', 'Java'],
-    Formatter.Prettier: ['JavaScript', 'JavaScript (Babel)'],
+    Formatter.Prettier: ['JavaScript', 'JavaScript (Babel)', 'JSON'],
     Formatter.AutoPep8: ['Python'],
     Formatter.RustFmt: ['Rust'],
 }
@@ -284,7 +284,13 @@ class FormatFileCommand(sublime_plugin.TextCommand):
                 command.extend(['-length', str(region.size())])
 
         elif self.formatter is Formatter.Prettier:
-            command.extend(['--parser', 'babel'])
+            syntax = self.view.settings().get('syntax')
+            (syntax, _) = os.path.splitext(syntax)
+
+            if syntax.endswith('JSON'):
+                command.extend(['--parser', 'json'])
+            else:
+                command.extend(['--parser', 'babel'])
 
             for region in selected_regions():
                 command.extend(['--range-start', str(region.begin())])
