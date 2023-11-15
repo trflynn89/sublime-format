@@ -13,18 +13,21 @@ class Formatter(enum.Enum):
     """
     Formatters supported by this plugin.
     """
-    ClangFormat = enum.auto()
-    Prettier = enum.auto()
     AutoPep8 = enum.auto()
+    ClangFormat = enum.auto()
+    Gn = enum.auto()
+    Prettier = enum.auto()
     RustFmt = enum.auto()
 
     def __str__(self):
-        if self is Formatter.ClangFormat:
+        if self is Formatter.AutoPep8:
+            return 'autopep8'
+        elif self is Formatter.ClangFormat:
             return 'clang-format'
+        elif self is Formatter.Gn:
+            return 'gn'
         elif self is Formatter.Prettier:
             return 'prettier'
-        elif self is Formatter.AutoPep8:
-            return 'autopep8'
         elif self is Formatter.RustFmt:
             return 'rustfmt'
 
@@ -32,24 +35,27 @@ class Formatter(enum.Enum):
 # List of possible names the formatters may have.
 if os.name == 'nt':
     FORMATTERS = {
-        Formatter.ClangFormat: ['clang-format.bat', 'clang-format.exe'],
-        Formatter.Prettier: ['prettier.cmd', 'prettier.exe'],
         Formatter.AutoPep8: ['autopep8.cmd', 'autopep8.exe'],
+        Formatter.ClangFormat: ['clang-format.bat', 'clang-format.exe'],
+        Formatter.Gn: ['gn.exe'],
+        Formatter.Prettier: ['prettier.cmd', 'prettier.exe'],
         Formatter.RustFmt: ['rustfmt.exe'],
     }
 else:
     FORMATTERS = {
-        Formatter.ClangFormat: ['clang-format'],
-        Formatter.Prettier: ['prettier'],
         Formatter.AutoPep8: ['autopep8'],
+        Formatter.ClangFormat: ['clang-format'],
+        Formatter.Gn: ['gn'],
+        Formatter.Prettier: ['prettier'],
         Formatter.RustFmt: ['rustfmt'],
     }
 
 # List of languages supported for use with the formatters.
 LANGUAGES = {
-    Formatter.ClangFormat: ['C', 'C++', 'Objective-C', 'Objective-C++', 'Java'],
-    Formatter.Prettier: ['JavaScript', 'JavaScript (Babel)', 'JSON'],
     Formatter.AutoPep8: ['Python'],
+    Formatter.ClangFormat: ['C', 'C++', 'Objective-C', 'Objective-C++', 'Java'],
+    Formatter.Gn: ['GN'],
+    Formatter.Prettier: ['JavaScript', 'JavaScript (Babel)', 'JSON'],
     Formatter.RustFmt: ['Rust'],
 }
 
@@ -91,14 +97,10 @@ def formatter_type(view):
     """
     Return the type of formatter to use for the given view, if any.
     """
-    if is_supported_language(Formatter.ClangFormat, view):
-        return Formatter.ClangFormat
-    elif is_supported_language(Formatter.Prettier, view):
-        return Formatter.Prettier
-    elif is_supported_language(Formatter.AutoPep8, view):
-        return Formatter.AutoPep8
-    elif is_supported_language(Formatter.RustFmt, view):
-        return Formatter.RustFmt
+    for formatter in Formatter:
+        if is_supported_language(formatter, view):
+            return formatter
+
     return None
 
 
@@ -276,12 +278,22 @@ class FormatFileCommand(sublime_plugin.TextCommand):
 
         command = [self.binary]
 
-        if self.formatter is Formatter.ClangFormat:
+        if self.formatter is Formatter.AutoPep8:
+            for region in selected_regions():
+                (begin, _) = self.view.rowcol(region.begin())
+                (end, _) = self.view.rowcol(region.end())
+                command.extend(['--line-range', str(begin + 1), str(end + 1)])
+                break
+
+        elif self.formatter is Formatter.ClangFormat:
             command.extend(['-assume-filename', self.view.file_name()])
 
             for region in selected_regions():
                 command.extend(['-offset', str(region.begin())])
                 command.extend(['-length', str(region.size())])
+
+        elif self.formatter is Formatter.Gn:
+            command.extend(['format', '--stdin'])
 
         elif self.formatter is Formatter.Prettier:
             syntax = self.view.settings().get('syntax')
@@ -295,13 +307,6 @@ class FormatFileCommand(sublime_plugin.TextCommand):
             for region in selected_regions():
                 command.extend(['--range-start', str(region.begin())])
                 command.extend(['--range-end', str(region.end())])
-                break
-
-        elif self.formatter is Formatter.AutoPep8:
-            for region in selected_regions():
-                (begin, _) = self.view.rowcol(region.begin())
-                (end, _) = self.view.rowcol(region.end())
-                command.extend(['--line-range', str(begin + 1), str(end + 1)])
                 break
 
             command.append('-')
@@ -349,12 +354,6 @@ class FormatFileListener(sublime_plugin.EventListener):
                     },
                     "prettier": {
                         "on_save": false
-                    },
-                    "autopep8": {
-                        "on_save": true
-                    },
-                    "rustfmt": {
-                        "on_save": true
                     }
                 }
             }
