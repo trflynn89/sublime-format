@@ -219,13 +219,18 @@ def execute_command(command, working_directory, stdin=None, extra_environment=No
 
         (stdout, stderr) = process.communicate(input=stdin)
 
+        if process.returncode == 0:
+            return stdout.decode(encoding) if stdout else None
+
         if stderr:
-            sublime.error_message('Error: ' + stderr.decode(encoding))
+            sublime.error_message(f'Error: {stderr.decode(encoding)}')
         elif stdout:
-            return stdout.decode(encoding)
+            sublime.error_message(f'Error: {stdout.decode(encoding)}')
+        else:
+            sublime.error_message(f'Error: Unknown error {process.returncode}')
 
     except Exception as ex:
-        sublime.error_message('Exception: ' + str(ex))
+        sublime.error_message(f'Exception: {ex}')
 
     return None
 
