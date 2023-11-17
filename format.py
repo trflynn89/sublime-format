@@ -285,6 +285,8 @@ class FormatFileCommand(sublime_plugin.TextCommand):
                 command.extend(['--line-range', str(begin + 1), str(end + 1)])
                 break
 
+            command.append('-')
+
         elif self.formatter is Formatter.ClangFormat:
             command.extend(['-assume-filename', self.view.file_name()])
 
@@ -308,8 +310,6 @@ class FormatFileCommand(sublime_plugin.TextCommand):
                 command.extend(['--range-start', str(region.begin())])
                 command.extend(['--range-end', str(region.end())])
                 break
-
-            command.append('-')
 
         working_directory = os.path.dirname(self.view.file_name())
 
