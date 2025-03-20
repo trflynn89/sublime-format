@@ -55,7 +55,7 @@ LANGUAGES = {
     Formatter.AutoPep8: ['Python'],
     Formatter.ClangFormat: ['C', 'C++', 'Objective-C', 'Objective-C++', 'Java'],
     Formatter.Gn: ['GN'],
-    Formatter.Prettier: ['HTML', 'JavaScript', 'JavaScript (Babel)', 'JSON', 'TypeScript'],
+    Formatter.Prettier: ['CSS', 'HTML', 'JavaScript', 'JavaScript (Babel)', 'JSON', 'TypeScript'],
     Formatter.RustFmt: ['Rust'],
 }
 
@@ -306,7 +306,9 @@ class FormatFileCommand(sublime_plugin.TextCommand):
             syntax = self.view.settings().get('syntax')
             (syntax, _) = os.path.splitext(syntax)
 
-            if syntax.endswith('HTML'):
+            if syntax.endswith('CSS'):
+                command.extend(['--parser', 'css'])
+            elif syntax.endswith('HTML'):
                 command.extend(['--parser', 'html'])
             elif syntax.endswith('JSON'):
                 command.extend(['--parser', 'json'])
