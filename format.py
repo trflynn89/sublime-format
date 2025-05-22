@@ -14,15 +14,15 @@ class Formatter(enum.Enum):
     Formatters supported by this plugin.
     """
 
-    AutoPep8 = enum.auto()
+    Black = enum.auto()
     ClangFormat = enum.auto()
     Gn = enum.auto()
     Prettier = enum.auto()
     RustFmt = enum.auto()
 
     def __str__(self):
-        if self is Formatter.AutoPep8:
-            return "autopep8"
+        if self is Formatter.Black:
+            return "black"
         elif self is Formatter.ClangFormat:
             return "clang-format"
         elif self is Formatter.Gn:
@@ -36,7 +36,7 @@ class Formatter(enum.Enum):
 # List of possible names the formatters may have.
 if os.name == "nt":
     FORMATTERS = {
-        Formatter.AutoPep8: ["autopep8.cmd", "autopep8.exe"],
+        Formatter.Black: ["black.cmd", "black.exe"],
         Formatter.ClangFormat: ["clang-format.bat", "clang-format.exe"],
         Formatter.Gn: ["gn.exe"],
         Formatter.Prettier: ["prettier.cmd", "prettier.exe"],
@@ -44,7 +44,7 @@ if os.name == "nt":
     }
 else:
     FORMATTERS = {
-        Formatter.AutoPep8: ["autopep8"],
+        Formatter.Black: ["black"],
         Formatter.ClangFormat: ["clang-format"],
         Formatter.Gn: ["gn"],
         Formatter.Prettier: ["prettier"],
@@ -53,7 +53,7 @@ else:
 
 # List of languages supported for use with the formatters.
 LANGUAGES = {
-    Formatter.AutoPep8: ["Python"],
+    Formatter.Black: ["Python"],
     Formatter.ClangFormat: ["C", "C++", "Objective-C", "Objective-C++", "Java"],
     Formatter.Gn: ["GN"],
     Formatter.Prettier: ["CSS", "HTML", "JavaScript", "JavaScript (Babel)", "JSON", "TypeScript"],
@@ -284,12 +284,11 @@ class FormatFileCommand(sublime_plugin.TextCommand):
 
         command = [self.binary]
 
-        if self.formatter is Formatter.AutoPep8:
+        if self.formatter is Formatter.Black:
             for region in selected_regions():
                 (begin, _) = self.view.rowcol(region.begin())
                 (end, _) = self.view.rowcol(region.end())
-                command.extend(["--line-range", str(begin + 1), str(end + 1)])
-                break
+                command.extend(["--line-ranges", f"{str(begin + 1)}-{str(end + 1)}"])
 
             command.append("-")
 
