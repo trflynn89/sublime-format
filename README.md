@@ -1,10 +1,10 @@
 # Code Formatting Plugin for Sublime Text 3 & 4
 
 Sublime Text plugin for formatting code. Supports the following formatters:
-* [black](https://black.readthedocs.io/en/stable/index.html)
 * [clang-format](https://clang.llvm.org/docs/ClangFormat.html)
 * [gn](https://gn.googlesource.com/gn)
 * [prettier](https://prettier.io/)
+* [ruff](https://docs.astral.sh/ruff/)
 * [rustfmt](https://docs.rs/rustfmt/latest/rustfmt/)
 
 ## Usage
@@ -16,8 +16,8 @@ context menu.
 By default, the entire file will be formatted. However, if any selections are active, and the formatter supports
 formatting selections, only those selections will be formatted.
 
-Note: `prettier` only supports formatting a single selection. If there are multiple selections added, only the first
-non-empty selection will be formatted.
+Note: `prettier` and `ruff` only support formatting a single selection. If there are multiple selections added, only the
+first non-empty selection will be formatted.
 
 This plugin may also be used to format code automatically when a file is saved. See [Settings](#Settings).
 
@@ -34,10 +34,6 @@ settings may be used:
             "environment": {
                 "KEY": "VALUE"
             },
-            "black": {
-                "path": "$HOME/workspace/tools",
-                "on_save": true
-            },
             "clang-format": {
                 "path": "$HOME/workspace/tools",
                 "on_save": true
@@ -49,6 +45,10 @@ settings may be used:
             "prettier": {
                 "path": "$HOME/workspace/tools",
                 "on_save": false
+            },
+            "ruff": {
+                "path": "$HOME/workspace/tools",
+                "on_save": true
             },
             "rustfmt": {
                 "path": "$HOME/workspace/tools",

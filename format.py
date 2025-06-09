@@ -14,49 +14,50 @@ class Formatter(enum.Enum):
     Formatters supported by this plugin.
     """
 
-    Black = enum.auto()
     ClangFormat = enum.auto()
     Gn = enum.auto()
     Prettier = enum.auto()
+    Ruff = enum.auto()
     RustFmt = enum.auto()
 
     def __str__(self):
-        if self is Formatter.Black:
-            return "black"
-        elif self is Formatter.ClangFormat:
+        if self is Formatter.ClangFormat:
             return "clang-format"
         elif self is Formatter.Gn:
             return "gn"
         elif self is Formatter.Prettier:
             return "prettier"
+        elif self is Formatter.Ruff:
+            return "ruff"
         elif self is Formatter.RustFmt:
             return "rustfmt"
+        assert False
 
 
 # List of possible names the formatters may have.
 if os.name == "nt":
     FORMATTERS = {
-        Formatter.Black: ["black.cmd", "black.exe"],
         Formatter.ClangFormat: ["clang-format.bat", "clang-format.exe"],
         Formatter.Gn: ["gn.exe"],
         Formatter.Prettier: ["prettier.cmd", "prettier.exe"],
+        Formatter.Ruff: ["ruff.cmd", "ruff.exe"],
         Formatter.RustFmt: ["rustfmt.exe"],
     }
 else:
     FORMATTERS = {
-        Formatter.Black: ["black"],
         Formatter.ClangFormat: ["clang-format"],
         Formatter.Gn: ["gn"],
         Formatter.Prettier: ["prettier"],
+        Formatter.Ruff: ["ruff"],
         Formatter.RustFmt: ["rustfmt"],
     }
 
 # List of languages supported for use with the formatters.
 LANGUAGES = {
-    Formatter.Black: ["Python"],
     Formatter.ClangFormat: ["C", "C++", "Objective-C", "Objective-C++", "Java"],
     Formatter.Gn: ["GN"],
     Formatter.Prettier: ["CSS", "HTML", "JavaScript", "JavaScript (Babel)", "JSON", "TypeScript"],
+    Formatter.Ruff: ["Python"],
     Formatter.RustFmt: ["Rust"],
 }
 
@@ -284,15 +285,7 @@ class FormatFileCommand(sublime_plugin.TextCommand):
 
         command = [self.binary]
 
-        if self.formatter is Formatter.Black:
-            for region in selected_regions():
-                (begin, _) = self.view.rowcol(region.begin())
-                (end, _) = self.view.rowcol(region.end())
-                command.extend(["--line-ranges", f"{str(begin + 1)}-{str(end + 1)}"])
-
-            command.append("-")
-
-        elif self.formatter is Formatter.ClangFormat:
+        if self.formatter is Formatter.ClangFormat:
             command.extend(["-assume-filename", self.view.file_name()])
 
             for region in selected_regions():
@@ -321,6 +314,18 @@ class FormatFileCommand(sublime_plugin.TextCommand):
                 command.extend(["--range-start", str(region.begin())])
                 command.extend(["--range-end", str(region.end())])
                 break
+
+        elif self.formatter is Formatter.Ruff:
+            command.append("format")
+            command.append("--silent")
+
+            for region in selected_regions():
+                (begin, _) = self.view.rowcol(region.begin())
+                (end, _) = self.view.rowcol(region.end())
+                command.extend(["--range", f"{str(begin + 1)}-{str(end + 2)}"])
+                break
+
+            command.append("-")
 
         working_directory = os.path.dirname(self.view.file_name())
 
