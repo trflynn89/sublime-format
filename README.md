@@ -3,6 +3,7 @@
 Sublime Text plugin for formatting code. Supports the following formatters:
 * [clang-format](https://clang.llvm.org/docs/ClangFormat.html)
 * [gn](https://gn.googlesource.com/gn)
+* [gofmt](https://pkg.go.dev/cmd/gofmt)
 * [prettier](https://prettier.io/)
 * [ruff](https://docs.astral.sh/ruff/)
 * [rustfmt](https://docs.rs/rustfmt/latest/rustfmt/)
@@ -17,7 +18,8 @@ By default, the entire file will be formatted. However, if any selections are ac
 formatting selections, only those selections will be formatted.
 
 Note: `prettier` and `ruff` only support formatting a single selection. If there are multiple selections added, only the
-first non-empty selection will be formatted.
+first non-empty selection will be formatted. Further, `gofmt` does not support formatting selections; the entire file
+will always be formatted.
 
 This plugin may also be used to format code automatically when a file is saved. See [Settings](#Settings).
 
@@ -39,6 +41,10 @@ settings may be used:
                 "on_save": true
             },
             "gn": {
+                "path": "$HOME/workspace/tools",
+                "on_save": true
+            },
+            "gofmt": {
                 "path": "$HOME/workspace/tools",
                 "on_save": true
             },

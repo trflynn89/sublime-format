@@ -16,6 +16,7 @@ class Formatter(enum.Enum):
 
     ClangFormat = enum.auto()
     Gn = enum.auto()
+    Go = enum.auto()
     Prettier = enum.auto()
     Ruff = enum.auto()
     RustFmt = enum.auto()
@@ -25,6 +26,8 @@ class Formatter(enum.Enum):
             return "clang-format"
         elif self is Formatter.Gn:
             return "gn"
+        elif self is Formatter.Go:
+            return "gofmt"
         elif self is Formatter.Prettier:
             return "prettier"
         elif self is Formatter.Ruff:
@@ -39,6 +42,7 @@ if os.name == "nt":
     FORMATTERS = {
         Formatter.ClangFormat: ["clang-format.bat", "clang-format.exe"],
         Formatter.Gn: ["gn.exe"],
+        Formatter.Go: ["gofmt.exe"],
         Formatter.Prettier: ["prettier.cmd", "prettier.exe"],
         Formatter.Ruff: ["ruff.cmd", "ruff.exe"],
         Formatter.RustFmt: ["rustfmt.exe"],
@@ -47,6 +51,7 @@ else:
     FORMATTERS = {
         Formatter.ClangFormat: ["clang-format"],
         Formatter.Gn: ["gn"],
+        Formatter.Go: ["gofmt"],
         Formatter.Prettier: ["prettier"],
         Formatter.Ruff: ["ruff"],
         Formatter.RustFmt: ["rustfmt"],
@@ -56,6 +61,7 @@ else:
 LANGUAGES = {
     Formatter.ClangFormat: ["C", "C++", "Objective-C", "Objective-C++", "Java"],
     Formatter.Gn: ["GN"],
+    Formatter.Go: ["Go"],
     Formatter.Prettier: ["CSS", "HTML", "JavaScript", "JavaScript (Babel)", "JSON", "TypeScript"],
     Formatter.Ruff: ["Python"],
     Formatter.RustFmt: ["Rust"],
@@ -294,6 +300,9 @@ class FormatFileCommand(sublime_plugin.TextCommand):
 
         elif self.formatter is Formatter.Gn:
             command.extend(["format", "--stdin"])
+
+        elif self.formatter is Formatter.Go:
+            command.extend(["-s"])
 
         elif self.formatter is Formatter.Prettier:
             syntax = self.view.settings().get("syntax")
