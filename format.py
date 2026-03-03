@@ -84,6 +84,20 @@ def add_to_path(directory):
 if platform.system() == "Linux":
     add_to_path(os.path.join(os.path.expanduser("~"), ".local", "bin"))
 elif platform.system() == "Darwin":
+    add_to_path(
+        os.path.join(
+            os.path.sep,
+            "Applications",
+            "Xcode.app",
+            "Contents",
+            "Developer",
+            "Toolchains",
+            "XcodeDefault.xctoolchain",
+            "usr",
+            "bin",
+        )
+    )
+
     add_to_path(os.path.join(os.path.sep, "opt", "homebrew", "bin"))
 
 
