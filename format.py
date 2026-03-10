@@ -350,6 +350,9 @@ class FormatFileCommand(sublime_plugin.TextCommand):
 
             command.append("-")
 
+        elif self.formatter is Formatter.RustFmt:
+            command.extend(["--edition", "2024"])
+
         working_directory = os.path.dirname(self.view.file_name())
 
         region = sublime.Region(0, self.view.size())
