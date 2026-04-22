@@ -333,6 +333,8 @@ class FormatFileCommand(sublime_plugin.TextCommand):
             else:
                 command.extend(["--parser", "babel"])
 
+            command.extend(["--stdin-filepath", self.view.file_name()])
+
             for region in selected_regions():
                 command.extend(["--range-start", str(region.begin())])
                 command.extend(["--range-end", str(region.end())])
